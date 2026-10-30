@@ -2,6 +2,13 @@
 
 核对日期：2026-10-30。
 
+## 收录申请
+
+- 已添加官方社区发现入口使用的 `dsh-plugin` 主题。
+- 已向社区生态目录 `0xsline/awesome-deepseek-harness` 的会话体验分类提交中英文条目：[PR #766](https://github.com/0xsline/awesome-deepseek-harness/pull/766)，等待维护者审核。
+
+本次提交是社区目录收录申请。安装方式以本仓库 README 为准。
+
 ## 当前可以做什么
 
 - 将源码作为 MIT 开源项目发布，提供清晰的兼容性、构建和本地安装说明。
