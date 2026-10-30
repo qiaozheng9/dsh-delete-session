@@ -19,7 +19,7 @@
 | 项目 | 当前要求 |
 | --- | --- |
 | 系统与入口 | Windows，DeepSeek Harness Desktop，`desktop` profile |
-| DeepSeek Harness | `0.2.1-rc.5`，且原始文件哈希与 [compatibility.json](compatibility.json) 完全一致 |
+| DeepSeek Harness | `0.2.1-rc.5`|
 | Better Sidebar | `dsh-better-sidebar 0.28.0`，当前适配将其作为必要条件 |
 | 开发环境 | Node.js 22 或以上、npm；运行时验证使用 DSH 自带的 Electron |
 | 其他版本、CLI、独立 Web 部署 | 尚未适配 |
