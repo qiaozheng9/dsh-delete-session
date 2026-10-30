@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { openArchive } from './asar.mjs';
 import { repack } from './repack.mjs';
 import {resolvePaths,requireApplication,samePath} from './paths.mjs';
+import {sidebarPlan,optionalSidebar} from './sidebar.mjs';
 
 const project=fileURLToPath(new URL('../',import.meta.url));
 const dist=path.join(project,'dist');
@@ -38,12 +39,13 @@ async function validateOriginal(manifest) {
     if(JSON.parse(a.read('package.json')).version!==manifest.appVersion)throw new Error('Application version mismatch');
     for(const [p,entry]of Object.entries(manifest.files))if(hash(a.read(p))!==entry.original)throw new Error(`原始模块哈希不匹配：${p}`);
   }finally{a.close();}
-  if((await json(path.join(sidebar,'package.json'))).version!==manifest.sidebarVersion)throw new Error('Better Sidebar version mismatch');
-  for(const [p,entry]of Object.entries(manifest.sidebar))if(hash(await fs.readFile(path.join(sidebar,p)))!==entry.original)throw new Error(`侧栏模块哈希不匹配：${p}`);
+  const sidebarFiles=await sidebarPlan(sidebar,manifest);
+  for(const [p,entry]of Object.entries(sidebarFiles))if(hash(await fs.readFile(path.join(sidebar,p)))!==entry.original)throw new Error(`侧栏模块哈希不匹配：${p}`);
   if(hash(await fs.readFile(path.join(dist,'bridge.mjs')))!==manifest.bridgeHash)throw new Error('Bridge artifact hash mismatch');
+  return sidebarFiles;
 }
 async function prepare(manifest) {
-  await validateOriginal(manifest);
+  const sidebarFiles=await validateOriginal(manifest);
   const stage=path.join(stateDir,'patched-app.asar');
   await fs.mkdir(stateDir,{recursive:true});
   if(await exists(stage)) {
@@ -63,25 +65,26 @@ async function prepare(manifest) {
   try{for(const [p,b]of replacements)if(hash(check.read(p))!==hash(b))throw new Error(`Archive verification failed: ${p}`);}
   finally{check.close();}
   console.log('Prepared and verified version-pinned archive.');
-  return stage;
+  return {stage,sidebarFiles};
 }
 
 async function install(manifest) {
   if(await exists(stateFile))throw new Error('Installation state already exists; run status or uninstall first.');
-  const stage=await prepare(manifest);
+  const {stage,sidebarFiles}=await prepare(manifest);
   await requireStopped();
   const backup=path.join(stateDir,'backup');
   const previousBackup=await exists(backup);
   if(previousBackup) {
     if(hash(await fs.readFile(path.join(backup,'app.asar')))!==manifest.appHash)throw new Error('现有备份与当前支持版本不一致，拒绝覆盖备份');
-    for(const[p,e]of Object.entries(manifest.sidebar))if(hash(await fs.readFile(path.join(backup,'sidebar',p)))!==e.original)throw new Error('现有侧栏备份不匹配');
+    for(const[p,e]of Object.entries(sidebarFiles))if(await exists(path.join(backup,'sidebar',p)))if(hash(await fs.readFile(path.join(backup,'sidebar',p)))!==e.original)throw new Error('现有侧栏备份不匹配');
   } else {
     await fs.mkdir(backup,{recursive:true});
     await fs.copyFile(archivePath,path.join(backup,'app.asar'));
   }
   const originalProfile=await fs.readFile(path.join(profile,'package.json'));
   await fs.writeFile(path.join(backup,previousBackup?'profile-before-install-'+Date.now()+'.json':'profile.json'),originalProfile);
-  for(const p of previousBackup?[]:Object.keys(manifest.sidebar)) {
+  for(const p of Object.keys(sidebarFiles)) {
+    if(await exists(path.join(backup,'sidebar',p)))continue;
     await fs.mkdir(path.dirname(path.join(backup,'sidebar',p)),{recursive:true});
     await fs.copyFile(path.join(sidebar,p),path.join(backup,'sidebar',p));
   }
@@ -95,14 +98,14 @@ async function install(manifest) {
   for(const p of ['package.json','cordis.patch.yml','README.md','LICENSE','lib/index.js','lib/client.js'])pluginHashes[p]=hash(await fs.readFile(path.join(dist,'plugin',p)));
   const state={version:1,status:'installing',application,home,archiveHash:hash(await fs.readFile(stage)),originalArchiveHash:manifest.appHash,
     pluginHashes,
-    originalProfileHash:hash(originalProfile),pluginDir,sidebar:manifest.sidebar,backup};
+    originalProfileHash:hash(originalProfile),pluginDir,sidebar:sidebarFiles,backup};
   await fs.writeFile(stateFile,JSON.stringify(state,null,2));
   try {
     // The local package has no npm dependencies: all host code is bundled and
     // client dependencies resolve through DSH's existing module loader.
     await fs.cp(path.join(dist,'plugin'),pluginDir,{recursive:true,errorOnExist:true,force:false});
     await atomicWrite(archivePath,await fs.readFile(stage));
-    for(const [p,e]of Object.entries(manifest.sidebar))await atomicWrite(path.join(sidebar,p),await fs.readFile(path.join(dist,'patches',e.patch)));
+    for(const [p,e]of Object.entries(sidebarFiles))await atomicWrite(path.join(sidebar,p),await fs.readFile(path.join(dist,'patches',e.patch)));
     const profileBytes=Buffer.from(JSON.stringify(profilePackage,null,2)+'\n');
     await atomicWrite(path.join(profile,'package.json'),profileBytes);
     state.profileHash=hash(profileBytes);state.status='installed';
@@ -125,17 +128,18 @@ async function uninstall() {
   // Remove only our package and bundle; preserve later user configuration changes.
   current.dsh.profile.bundles=current.dsh.profile.bundles.filter(x=>x!=='dsh-delete-session');
   delete current.dependencies?.['dsh-delete-session'];
-  for(const [p,e]of Object.entries(state.sidebar)) {
+  const sidebarFiles=await optionalSidebar(sidebar)?state.sidebar:{};
+  for(const [p,e]of Object.entries(sidebarFiles)) {
     const actual=hash(await fs.readFile(path.join(sidebar,p)));
     if(actual!==e.patched&&actual!==e.original)throw new Error('Better Sidebar 已更新或被修改，拒绝覆盖。');
   }
   if(hash(await fs.readFile(path.join(state.backup,'app.asar')))!==state.originalArchiveHash)throw new Error('Application backup is damaged; refusing restoration.');
-  for(const [p,e]of Object.entries(state.sidebar))if(hash(await fs.readFile(path.join(state.backup,'sidebar',p)))!==e.original)throw new Error('Better Sidebar backup is damaged; refusing restoration.');
+  for(const [p,e]of Object.entries(sidebarFiles))if(hash(await fs.readFile(path.join(state.backup,'sidebar',p)))!==e.original)throw new Error('Better Sidebar backup is damaged; refusing restoration.');
   const expected=path.resolve(profile,'node_modules','dsh-delete-session');
   if(path.resolve(state.pluginDir)!==expected)throw new Error('Unexpected plugin directory');
   if(state.status==='installed')for(const[p,h]of Object.entries(state.pluginHashes))if(hash(await fs.readFile(path.join(expected,p)))!==h)throw new Error('增强包文件已被修改，拒绝删除用户修改。');
   await atomicWrite(archivePath,await fs.readFile(path.join(state.backup,'app.asar')));
-  for(const p of Object.keys(state.sidebar))await atomicWrite(path.join(sidebar,p),await fs.readFile(path.join(state.backup,'sidebar',p)));
+  for(const p of Object.keys(sidebarFiles))await atomicWrite(path.join(sidebar,p),await fs.readFile(path.join(state.backup,'sidebar',p)));
   await atomicWrite(path.join(profile,'package.json'),Buffer.from(JSON.stringify(current,null,2)+'\n'));
   // The only recursive removal is the exact plugin directory created by this installer.
   await fs.rm(expected,{recursive:true,force:true});
@@ -154,12 +158,13 @@ try {
         const state=await json(stateFile);
         if(!samePath(state.application,application)||!samePath(state.home,home))throw new Error('Installation target mismatch');
         const appOk=hash(await fs.readFile(archivePath))===state.archiveHash;
-        const sidebarChecks=await Promise.all(Object.entries(state.sidebar).map(async([p,e])=>hash(await fs.readFile(path.join(sidebar,p)))===e.patched));
+        const sidebarFiles=await optionalSidebar(sidebar)?state.sidebar:{};
+        const sidebarChecks=await Promise.all(Object.entries(sidebarFiles).map(async([p,e])=>hash(await fs.readFile(path.join(sidebar,p)))===e.patched));
         const pluginChecks=await Promise.all(Object.entries(state.pluginHashes).map(async([p,h])=>hash(await fs.readFile(path.join(state.pluginDir,p)))===h));
         const configured=(await json(path.join(profile,'package.json'))).dsh.profile.bundles.includes('dsh-delete-session');
         console.log(JSON.stringify({status:state.status,appOk,sidebarOk:sidebarChecks.every(Boolean),pluginOk:pluginChecks.every(Boolean),configured},null,2));
         if(!appOk||!sidebarChecks.every(Boolean)||!pluginChecks.every(Boolean)||!configured)process.exitCode=1;
-      } else {await validateOriginal(manifest);console.log('Not installed. Application and sidebar match the supported build.');}
+      } else {await validateOriginal(manifest);console.log('Not installed. Application matches the supported version.');}
     } else throw new Error('Usage: manage.mjs prepare|install|status|uninstall');
   }
 }catch(e){console.error(e.message);process.exitCode=1;}

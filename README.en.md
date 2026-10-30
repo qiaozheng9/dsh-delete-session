@@ -6,20 +6,18 @@
 
 ![Deletion confirmation, using an automatically created test conversation](docs/assets/delete-dialog.png)
 
-This experimental Windows enhancement adds a native **Permanent delete** action to normal and archived conversations. It stops related work, removes local persistence and associated records, and cleans up connected windows and Better Sidebar state.
+This experimental Windows enhancement adds a native **Permanent delete** action to normal and archived conversations. It stops related work, removes local persistence and associated records, and cleans up connected windows and local state.
 
-**This is a runtime bundle plus explicitly installed, version-pinned desktop patches.** It is not a universal, standalone marketplace plugin. Installing dependencies does not patch the application automatically.
+**Supports DeepSeek Harness 0.2.1-rc.5 on Windows Desktop.** The runtime bundle is installed together with the necessary desktop patches. It is not a universal, standalone marketplace plugin. Installing dependencies does not patch the application automatically.
 
 ## Supported installation
 
 | Component | Requirement |
 | --- | --- |
 | Desktop | Windows, DeepSeek Harness `0.2.1-rc.5`, `desktop` profile |
-| Sidebar | `dsh-better-sidebar 0.28.0`, currently required |
-| Build identity | Original SHA-256 values must match [compatibility.json](compatibility.json) |
 | Development | Node.js 22+, npm; integration tests use the application's Electron runtime |
 
-Identical version numbers do not guarantee identical binaries. Unsupported builds are rejected. Do not edit checksums to bypass validation. Other DSH releases, standalone web deployments, CLI installations, macOS and Linux desktop installations are not supported by this adapter.
+Other DSH releases, standalone web deployments, CLI installations, macOS and Linux desktop installations are not supported by this adapter. Wait for an updated adapter when upgrading DSH.
 
 ## Deletion scope
 
@@ -80,17 +78,17 @@ Keep this checkout and `.local/backup/`: the installer needs its state and origi
 
 Exit DSH completely, then run `npm run uninstall:local`. This restores verified program files and removes this bundle while retaining unrelated profile edits. **It does not restore deleted conversations.** Finish pending deletion before uninstalling.
 
-Uninstall before upgrading DSH or Better Sidebar. Unknown or modified files cause the installer to refuse restoration. A new upstream build needs a reviewed adapter, not a forced patch.
+Uninstall before upgrading DSH. Unknown or modified files cause the installer to refuse restoration. A new upstream build needs a reviewed adapter, not a forced patch.
 
 ## Development and recovery
 
 Without DSH installed, run `npm run check`, `npm test` and `npm run build:plugin`. GitHub Actions runs these on Windows/Linux with Node.js 22/24. A passing Linux job does not mean Linux desktop installation is supported.
 
-`build:plugin` only compiles the runtime bundle; it does not prepare the required application patches. Full integration tests require the exact supported desktop build. `npm run verify:installed` is a separate, explicit acceptance test: it launches the real desktop profile, creates and deletes a new test conversation, then exits. Do not run it as a routine unit test.
+`build:plugin` only compiles the runtime bundle; it does not prepare the required application patches. Full integration tests require the supported DSH desktop version. `npm run verify:installed` is a separate, explicit acceptance test: it launches the real desktop profile, creates and deletes a new test conversation, then exits. Do not run it as a routine unit test.
 
 The server accepts conversation IDs, never client-supplied deletion paths. It rechecks descendants, blocks new work, closes writers and acquires the native exclusive lock before cleanup. A minimal journal supports restart/retry; success is emitted only after cleanup completes. Payload-free completion receipts prevent late events from recreating deleted conversations and let reconnecting clients clear old state.
 
-Some adapters depend on private runtime APIs and use `@ts-nocheck`; exact hashes and integration checks are necessary in addition to type checking. This repository excludes installation archives, extracted upstream modules, local state and conversation data. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Some adapters depend on private runtime APIs and use `@ts-nocheck`; integration checks complement type checking for the supported DSH version. This repository excludes installation archives, extracted upstream modules, local state and conversation data. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Ecosystem status
 

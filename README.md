@@ -12,7 +12,7 @@
 
 ![删除确认弹窗；截图中的对话由自动验收创建](docs/assets/delete-dialog.png)
 
-> **当前为实验性、本地安装的增强包。** 它由 Desktop profile 组合包与版本绑定补丁组成，需要修改本机 `app.asar` 和 Better Sidebar 客户端文件。仅支持下表中的已验证构建，不是跨版本即装即用插件。仓库不分发 DSH 安装包，也不在安装依赖时自动修改应用。
+> 当前支持 **DeepSeek Harness 0.2.1-rc.5（Windows 桌面端）**。通过 Desktop profile 加载，安装时应用所需的程序适配补丁。仓库不分发 DSH 安装包，安装依赖时不会自动修改应用。
 
 ## 兼容性
 
@@ -20,11 +20,10 @@
 | --- | --- |
 | 系统与入口 | Windows，DeepSeek Harness Desktop，`desktop` profile |
 | DeepSeek Harness | `0.2.1-rc.5`|
-| Better Sidebar | `dsh-better-sidebar 0.28.0`，当前适配将其作为必要条件 |
 | 开发环境 | Node.js 22 或以上、npm；运行时验证使用 DSH 自带的 Electron |
 | 其他版本、CLI、独立 Web 部署 | 尚未适配 |
 
-**版本号相同也不代表构建相同。** 构建和安装均校验 SHA-256；不匹配时拒绝继续。请勿修改哈希来绕过检查。DSH 或 Better Sidebar 升级后，需要重新审查适配。
+DSH 升级后，请等待对应版本的适配。
 
 ## 使用
 
@@ -41,7 +40,7 @@
 | 目标对话与嵌套子代理 | 删除全部本地日志版本及其关联记录 |
 | 搜索、投影与工作区记录 | 清理索引、投影缓存、归属、置顶和归档记录 |
 | 工具输出与附件 | 清理专属输出；附件仅在没有其他会话或上传收据引用时回收 |
-| 客户端状态 | 清理关联视图、草稿、标签页与缓存，取消 Better Sidebar 延迟写入，并通知连接中的窗口 |
+| 客户端状态 | 清理关联视图、草稿、标签页与缓存，取消延迟写入，并通知连接中的窗口 |
 | 项目文件、用户配置 | 保留 |
 | 独立分支、共享附件 | 保留 |
 
@@ -118,7 +117,7 @@ npm run install:local
 npm run status
 ```
 
-安装器备份程序文件与 profile 配置，写入增强包，再应用经哈希验证的补丁。它不会强制终止应用。重新启动 DSH 后即可使用。
+安装器备份程序文件与 profile 配置，写入增强包，再应用程序适配补丁。它不会强制终止应用。重新启动 DSH 后即可使用。
 
 **请保留此仓库目录和 `.local/`。** 默认备份位于 `.local/backup/`，安装记录位于 `.local/installed.json`；profile 的本地依赖也指向本项目生成的组合包。备份不包含被删除的会话。
 
@@ -129,9 +128,9 @@ npm run status
 npm run uninstall:local
 ```
 
-卸载前完全退出桌面应用。卸载会验证程序、备份和受跟踪的插件文件，恢复应用与侧栏文件，并从 profile 移除本增强包，保留安装后的其他配置修改。**卸载不能恢复已删除的对话。** 有未完成的删除时，须先启动应用重试完成。
+卸载前完全退出桌面应用。卸载会验证程序、备份和受跟踪的插件文件，恢复被修改的程序文件，并从 profile 移除本增强包，保留安装后的其他配置修改。**卸载不能恢复已删除的对话。** 有未完成的删除时，须先启动应用重试完成。
 
-升级 DSH 或 Better Sidebar 前，建议先卸载增强包。升级后如检查失败，安装器会拒绝覆盖未知文件；不要强行恢复旧版 `app.asar` 或重打旧补丁。
+升级 DSH 前，建议先卸载增强包。升级后如检查失败，安装器会拒绝覆盖未知文件；不要强行恢复旧版 `app.asar` 或重打旧补丁。
 
 ## 一致性与隐私
 
@@ -156,7 +155,7 @@ npm run build:plugin
 
 `build:plugin` **只生成运行时组合包**，不会生成或安装 DSH 所需补丁。GitHub Actions 在 Windows／Linux、Node.js 22／24 上执行这些检查；Linux CI 通过不代表支持 Linux 桌面安装。
 
-完整集成验证需要兼容的本机 DSH 和 Better Sidebar。核心与隔离测试覆盖子代理、独立分支、共享引用、缺失文件、锁冲突、并发变更、中断重试和路径链接边界；真实桌面测试需要额外执行：
+完整集成验证需要兼容的本机 DSH。核心与隔离测试覆盖子代理、独立分支、共享引用、缺失文件、锁冲突、并发变更、中断重试和路径链接边界；真实桌面测试需要额外执行：
 
 ```powershell
 # 先完全退出已安装并启用增强包的桌面应用
@@ -171,7 +170,7 @@ npm run verify:installed
 | `plugin/` | 运行时组合包 manifest 与配置层 |
 | `scripts/` | 构建、版本绑定补丁、安装器与验证脚本 |
 | `tests/` | 隔离的核心、路径、标题与 ASAR 测试 |
-| `compatibility.json` | 已审查构建的原始文件哈希 |
+| `compatibility.json` | 支持的 DSH 版本与适配信息 |
 | `.local/`、`.reference/`、`dist/` | 本机状态、上游参考与生成产物；不提交 |
 
 部分适配涉及 DSH 私有运行时接口，尚不能依靠公开类型完整检查；对应模块保留 `@ts-nocheck`，需以版本校验及集成验证补足。贡献方式见 [CONTRIBUTING.md](CONTRIBUTING.md)。
@@ -184,4 +183,4 @@ npm run verify:installed
 
 ## 许可证与归属
 
-[MIT](LICENSE)。本项目为独立社区增强，与 DeepSeek 官方无隶属关系。DeepSeek Harness、Better Sidebar 与各依赖的归属和许可证见 [NOTICE.md](NOTICE.md)。
+[MIT](LICENSE)。本项目为独立社区增强，与 DeepSeek 官方无隶属关系。DeepSeek Harness 与各依赖的归属和许可证见 [NOTICE.md](NOTICE.md)。

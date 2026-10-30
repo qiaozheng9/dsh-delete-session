@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { build } from 'esbuild';
 import {buildPlugin} from './build-plugin.mjs';
 import {resolvePaths,requireApplication} from './paths.mjs';
+import {optionalSidebar} from './sidebar.mjs';
 import { openArchive } from './asar.mjs';
 import { patchFiles,patchSource,prefix } from './patches.mjs';
 import { patchNativeClient,patchSidebar } from './client-patches.mjs';
@@ -14,8 +15,10 @@ const sidebar=targets.sidebar;
 const sidebarSources=targets.sourceSidebar;
 const supported=JSON.parse(await fs.readFile('compatibility.json','utf8'));
 const archive=openArchive(app);
-const manifest={version:1,appVersion:JSON.parse(archive.read('package.json')).version,appHash:hash(await fs.readFile(app)),files:{},sidebarVersion:JSON.parse(await fs.readFile(sidebar+'/package.json','utf8')).version,sidebar:{}};
-if(manifest.appVersion!==supported.appVersion||manifest.appHash!==supported.appHash||manifest.sidebarVersion!==supported.sidebarVersion)throw new Error('Unsupported desktop build. See compatibility.json; matching version text alone is insufficient.');
+const sidebarPackage=await optionalSidebar(sidebar);
+const manifest={version:1,appVersion:JSON.parse(archive.read('package.json')).version,appHash:hash(await fs.readFile(app)),files:{},sidebarVersion:sidebarPackage?.version??null,sidebar:{}};
+if(manifest.appVersion!==supported.appVersion||manifest.appHash!==supported.appHash)throw new Error('Unsupported desktop build. See compatibility.json; matching version text alone is insufficient.');
+if(sidebarPackage&&manifest.sidebarVersion!==supported.sidebarVersion)throw new Error('侧栏扩展版本尚未适配。');
 await buildPlugin();
 await fs.mkdir('dist/patches',{recursive:true});
 for(const p of [...patchFiles,prefix+'dsh-api-session-controller/lib/client.js']){
@@ -28,7 +31,7 @@ for(const p of [...patchFiles,prefix+'dsh-api-session-controller/lib/client.js']
   manifest.files[p]={original:hash(original),patched:hash(text),patch:name};
 }
 archive.close();
-for(const p of ['lib/client.js','lib/client-registry.js']){
+for(const p of sidebarPackage?['lib/client.js','lib/client-registry.js']:[]){
   const original=await fs.readFile(sidebarSources+'/'+p);const text=patchSidebar(original.toString());
   if(hash(original)!==supported.sidebar[p])throw new Error('Unsupported Better Sidebar module: '+p);
   const name=hash('sidebar/'+p)+'.js';await fs.writeFile('dist/patches/'+name,text);

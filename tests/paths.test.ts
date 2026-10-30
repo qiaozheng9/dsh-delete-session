@@ -14,6 +14,7 @@ test('portable settings prefer explicit environment and preserve recorded instal
   assert.equal(defaults.application,installed.application);
   assert.equal(defaults.home,installed.home);
   assert.equal(defaults.sourceArchive,join(installed.backup,'app.asar'));
+  assert.equal(defaults.sourceSidebar,defaults.sidebar);
   const overridden=resolvePaths({project:root,env:{DSH_APP_DIR:join(root,'env-app'),DSH_HOME:join(root,'env-home'),DSH_STATE_DIR:join(root,'state')},config:{appDir:join(root,'config-app')},installed});
   assert.equal(overridden.application,join(root,'env-app'));
   assert.equal(overridden.home,join(root,'env-home'));

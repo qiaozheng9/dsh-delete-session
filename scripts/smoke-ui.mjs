@@ -5,13 +5,19 @@ import {build} from 'esbuild';
 import {chromium} from 'playwright-core';
 import {patchSidebar} from './client-patches.mjs';
 import {resolvePaths,browserExecutable} from './paths.mjs';
+import {optionalSidebar} from './sidebar.mjs';
 
-const original=await fs.readFile(resolvePaths().sourceSidebar+'/lib/client.js','utf8');
-const patched=patchSidebar(original);
-const start=patched.indexOf("ctx.effect(() => {\n        const deleted=new Set();");
-const finish=patched.indexOf("},'delete-session: Better Sidebar cache cleanup');",start)+"},'delete-session: Better Sidebar cache cleanup');".length;
-assert(start>0&&finish>start);
-const adapter=patched.slice(start,finish);
+const paths=resolvePaths();
+const extension=await optionalSidebar(paths.sidebar);
+let adapter='';
+if(extension) {
+  const original=await fs.readFile(paths.sourceSidebar+'/lib/client.js','utf8');
+  const patched=patchSidebar(original);
+  const start=patched.indexOf("ctx.effect(() => {\n        const deleted=new Set();");
+  const finish=patched.indexOf("},'delete-session: Better Sidebar cache cleanup');",start)+"},'delete-session: Better Sidebar cache cleanup');".length;
+  assert(start>0&&finish>start);
+  adapter=patched.slice(start,finish);
+}
 const harness=`
 import React from 'react';import{createRoot}from'react-dom/client';import{createPortal}from'react-dom';
 const root=createRoot(document.getElementById('app'));const components=[];
@@ -27,7 +33,7 @@ const ctx={effect(fn){fn();},slots:{inject(_n,fn){fn();},register(spec,C){compon
 uiWorkspace:{mainReference:{sessionId:'root'},clearMain(){window.__calls.clear++;this.mainReference=undefined;}},
 sessions:{async deleteSessionRecords(ids){window.__calls.records.push(...ids);}}};
 localStorage.setItem('dsh.conversation.root','private draft');localStorage.setItem('dsh.conversation.other','keep draft');localStorage.setItem('dsh-sidebar:v1:root','private layout');
-sidebarStore.persistTimers.set('root',setTimeout(()=>{window.__calls.sidebarWrites++;localStorage.setItem('dsh-sidebar:v1:root','resurrected');},15000));
+if(${Boolean(extension)})sidebarStore.persistTimers.set('root',setTimeout(()=>{window.__calls.sidebarWrites++;localStorage.setItem('dsh-sidebar:v1:root','resurrected');},15000));
 ${adapter}
 window.__sidebar=sidebarStore;
 const primitives={
@@ -81,13 +87,13 @@ try{
   await page.getByRole('button',{name:'重试永久删除',exact:true}).click();
   await page.getByRole('dialog').waitFor({state:'detached'});
   const state=await page.evaluate(()=>({calls:window.__calls,draft:localStorage.getItem('dsh.conversation.root'),layout:localStorage.getItem('dsh-sidebar:v1:root'),keep:localStorage.getItem('dsh.conversation.other'),timer:window.__sidebar.persistTimers.has('root'),other:window.__sidebar.bySession.get('other').bottomSplits.tabs.map(x=>x.id),remembered:JSON.parse(localStorage.getItem('dsh-sidebar:v1:sidechat-thread'))}));
-  assert.equal(state.calls.clear,1);assert.equal(state.draft,null);assert.equal(state.layout,null);assert.equal(state.keep,'keep draft');assert.equal(state.timer,false);assert.deepEqual(state.other,['keep']);
-  assert.deepEqual(state.remembered,{untouched:'keep-thread'});
+  assert.equal(state.calls.clear,1);assert.equal(state.draft,null);assert.equal(state.layout,null);assert.equal(state.keep,'keep draft');assert.equal(state.timer,false);
+  if(extension){assert.deepEqual(state.other,['keep']);assert.deepEqual(state.remembered,{untouched:'keep-thread'});}
   assert.equal(executions,2);assert.deepEqual(errors,[]);
   descendants=0;
   await page.getByRole('button',{name:'永久删除',exact:true}).click();
   await page.getByRole('button',{name:'重试永久删除',exact:true}).waitFor();
   assert(!(await page.getByRole('dialog').textContent()).includes('0 个'));
   await page.getByRole('button',{name:'取消',exact:true}).click();
-  console.log('PASS: real Edge menu, modal, safe title text, cancel, failure/retry, deletion events, draft cleanup and Better Sidebar timer/tab cleanup.');
+  console.log('PASS: real Edge menu, modal, safe title text, cancel, failure/retry, deletion events and draft cleanup'+(extension?', including optional extension cache cleanup.':', with no sidebar extension installed.'));
 }finally{if(browser)await browser.close();for(const res of peers)res.end();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}

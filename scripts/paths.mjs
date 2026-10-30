@@ -39,7 +39,7 @@ export function resolvePaths({project=projectRoot,env=process.env,config:givenCo
   return {project,stateDir,stateFile:path.join(stateDir,'installed.json'),installed,application,home,
     profile:path.join(home,'profiles','desktop'),sidebar,archive,
     sourceArchive:env.DSH_ASAR?absolute(env.DSH_ASAR,'DSH_ASAR'):installed?path.join(installed.backup,'app.asar'):archive,
-    sourceSidebar:env.DSH_SIDEBAR?sidebar:installed?path.join(installed.backup,'sidebar'):sidebar,
+    sourceSidebar:env.DSH_SIDEBAR?sidebar:installed&&Object.keys(installed.sidebar??{}).length?path.join(installed.backup,'sidebar'):sidebar,
     electron:env.DSH_ELECTRON?absolute(env.DSH_ELECTRON,'DSH_ELECTRON'):application&&path.join(application,'DeepSeek Harness.exe')};
 }
 export function requireApplication(paths) {
