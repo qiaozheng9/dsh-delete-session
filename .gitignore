@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.reference/
+.local/
+coverage/
+local.config.json
+.env
+.env.*
+*.log
+*.tgz
+*.asar
+*.asar.unpacked/
+*.sqlite*
+*.db
+.DS_Store
+Thumbs.db

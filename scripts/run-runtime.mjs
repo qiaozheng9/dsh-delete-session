@@ -1,0 +1,10 @@
+import {spawnSync} from 'node:child_process';
+import path from 'node:path';
+import {resolvePaths,requireApplication} from './paths.mjs';
+const runtime=requireApplication(resolvePaths()).electron;
+const script=process.argv[2]??'scripts/smoke-runtime.mjs';
+const result=spawnSync(runtime,['--expose-internals',path.resolve(script),...process.argv.slice(3)],{env:{...process.env,ELECTRON_RUN_AS_NODE:'1'},encoding:'utf8',windowsHide:true,timeout:60000});
+if(result.stdout)process.stdout.write(result.stdout);
+if(result.stderr)process.stderr.write(result.stderr);
+if(result.error)console.error(result.error.message);
+process.exitCode=result.status??1;
