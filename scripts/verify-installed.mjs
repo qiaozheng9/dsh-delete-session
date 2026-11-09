@@ -2,9 +2,10 @@ import { _electron as electron } from 'playwright-core';
 import assert from 'node:assert/strict';
 import {resolvePaths,requireApplication} from './paths.mjs';
 const environment={...process.env};delete environment.ELECTRON_RUN_AS_NODE;
+const targets=requireApplication(resolvePaths());
 let app;let page;let fixtureId;
 try {
-  app=await electron.launch({executablePath:requireApplication(resolvePaths()).electron,env:environment,timeout:45000});
+  app=await electron.launch({executablePath:targets.electron,env:environment,timeout:45000});
   page=await app.firstWindow({timeout:45000});
   await page.waitForURL(/dsh-app:\/\/app\//,{timeout:45000});
   await page.waitForFunction(()=>window.__DSH_BOOT__&&window.__ModuleLoader__?.mode==='live',{timeout:45000});
@@ -49,7 +50,7 @@ try {
     sessions.projectList();
     return id;
   });
-  await page.getByRole('button',{name:/^(会话“永久删除功能验收（自动测试）”的操作|Session actions for 永久删除功能验收（自动测试）)$/}).click({force:true,timeout:15000});
+  await page.getByText('永久删除功能验收（自动测试）',{exact:true}).first().click({button:'right'});
   await page.getByText('永久删除',{exact:true}).click();
   const dialog=page.getByRole('dialog',{name:'永久删除对话？',exact:true});
   await dialog.getByRole('button',{name:'永久删除',exact:true}).waitFor();

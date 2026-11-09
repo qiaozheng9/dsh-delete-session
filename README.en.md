@@ -8,13 +8,13 @@
 
 This experimental Windows enhancement adds a native **Permanent delete** action to normal and archived conversations. It stops related work, removes local persistence and associated records, and cleans up connected windows and local state.
 
-**Supports DeepSeek Harness 0.2.1-rc.5 on Windows Desktop.** The runtime bundle is installed together with the necessary desktop patches. It is not a universal, standalone marketplace plugin. Installing dependencies does not patch the application automatically.
+**Supports DeepSeek Harness 0.2.2-rc.1 on Windows Desktop.** The installer adds the runtime bundle to the desktop profile and applies the corresponding desktop patches.
 
 ## Supported installation
 
 | Component | Requirement |
 | --- | --- |
-| Desktop | Windows, DeepSeek Harness `0.2.1-rc.5`, `desktop` profile |
+| Desktop | Windows, DeepSeek Harness `0.2.2-rc.1`, `desktop` profile |
 | Development | Node.js 22+, npm; integration tests use the application's Electron runtime |
 
 Other DSH releases, standalone web deployments, CLI installations, macOS and Linux desktop installations are not supported by this adapter. Wait for an updated adapter when upgrading DSH.

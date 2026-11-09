@@ -29,8 +29,11 @@ export function patchSource(file, original) {
     imports.add('installAgentRegistry');suffix+='installAgentRegistry(AgentRegistry.prototype);';
   } else if(file === prefix+'dsh-agent-loop/lib/index.js') {
     imports.add('gate');
-    s=once(s,'\t\t\t\t\t\treturn {\n\t\t\t\t\t\t\tagent,\n\t\t\t\t\t\t\tdispose',
-      '\t\t\t\t\t\tgate.disposers.set(agent, dispose);\n\t\t\t\t\t\treturn {\n\t\t\t\t\t\t\tagent,\n\t\t\t\t\t\t\tdispose');
+    const publications=s.match(/^(\t+)return \{\n\1\tagent,\n\1\tdispose\n/mg);
+    if(publications?.length!==1)throw new Error('Expected one agent publication with a disposer');
+    const publication=publications[0];
+    const indent=publication.match(/^\t+/)[0];
+    s=once(s,publication,`${indent}gate.disposers.set(agent, dispose);\n${publication}`);
     s=once(s,'\tsend(message, target, wakeup) {','\tsend(message, target, wakeup) {\n\t\tgate.assert([this.id]);');
   } else if(file === prefix+'dsh-api-session-controller/lib/index.js') {
     imports.add('installApiCommands');imports.add('gate');suffix+='installApiCommands(SessionCommandController.prototype);';

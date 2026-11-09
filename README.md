@@ -12,14 +12,14 @@
 
 ![删除确认弹窗；截图中的对话由自动验收创建](docs/assets/delete-dialog.png)
 
-> 当前支持 **DeepSeek Harness 0.2.1-rc.5（Windows 桌面端）**。通过 Desktop profile 加载，安装时应用所需的程序适配补丁。仓库不分发 DSH 安装包，安装依赖时不会自动修改应用。
+> 当前支持 **DeepSeek Harness 0.2.2-rc.1（Windows 桌面端）**。安装器将增强包加入 Desktop profile，并应用对应版本的程序适配。
 
 ## 兼容性
 
 | 项目 | 当前要求 |
 | --- | --- |
 | 系统与入口 | Windows，DeepSeek Harness Desktop，`desktop` profile |
-| DeepSeek Harness | `0.2.1-rc.5`|
+| DeepSeek Harness | `0.2.2-rc.1` |
 | 开发环境 | Node.js 22 或以上、npm；运行时验证使用 DSH 自带的 Electron |
 | 其他版本、CLI、独立 Web 部署 | 尚未适配 |
 
@@ -27,7 +27,7 @@ DSH 升级后，请等待对应版本的适配。
 
 ## 使用
 
-1. 打开普通或已归档对话的菜单，选择红色 **「永久删除」**。
+1. 右键点击侧栏中的普通或已归档对话，选择红色 **「永久删除」**。
 2. 核对对话标题、关联子代理数量及不可恢复提示。运行中的对话显示 **「停止并永久删除」**。
 3. 确认后等待清理完成。若范围在预览后发生变化，需要重新确认。
 
@@ -118,6 +118,8 @@ npm run status
 ```
 
 安装器备份程序文件与 profile 配置，写入增强包，再应用程序适配补丁。它不会强制终止应用。重新启动 DSH 后即可使用。
+
+如果重装 DSH 覆盖了旧版增强包的程序改动，先运行 `npm run build` 为当前版本构建，再按上述步骤安装。安装器会将旧安装记录和程序备份移到 `.local/replaced-*`，并保存已有的插件目录副本。
 
 **请保留此仓库目录和 `.local/`。** 默认备份位于 `.local/backup/`，安装记录位于 `.local/installed.json`；profile 的本地依赖也指向本项目生成的组合包。备份不包含被删除的会话。
 

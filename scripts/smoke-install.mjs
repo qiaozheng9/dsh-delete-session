@@ -29,7 +29,25 @@ try {
     const profileData={name:'fixture',dependencies:withExtension?{'dsh-better-sidebar':extension.version}:{},dsh:{profile:{bundles:['@deepseek-ai/dsh-base','@deepseek-ai/dsh-web-app',...(withExtension?['dsh-better-sidebar']:[])]}}};
     await fs.writeFile(path.join(profile,'package.json'),JSON.stringify(profileData));
     assert(command('status').includes('Not installed'));
+    if(!withExtension) {
+      const pluginDir=path.join(profile,'node_modules','dsh-delete-session');
+      const backup=path.join(state,'backup');
+      await fs.mkdir(pluginDir,{recursive:true});
+      await fs.mkdir(backup,{recursive:true});
+      await fs.writeFile(path.join(pluginDir,'package.json'),JSON.stringify({name:'dsh-delete-session'}));
+      await fs.writeFile(path.join(backup,'app.asar'),'previous version');
+      await fs.writeFile(path.join(state,'installed.json'),JSON.stringify({status:'installed',application,home,pluginDir,backup,originalArchiveHash:digest('previous version')}));
+      const staleProfile=structuredClone(profileData);
+      staleProfile.dsh.profile.bundles.push('dsh-delete-session');
+      await fs.writeFile(path.join(profile,'package.json'),JSON.stringify(staleProfile));
+    }
     command('install');assert(command('status').includes('"appOk": true'));
+    if(!withExtension) {
+      const archived=(await fs.readdir(state)).find(name=>name.startsWith('replaced-'));
+      assert.equal(await fs.readFile(path.join(state,archived,'backup','app.asar'),'utf8'),'previous version');
+      const active=JSON.parse(await fs.readFile(path.join(profile,'package.json'),'utf8'));
+      assert.equal(active.dsh.profile.bundles.filter(name=>name==='dsh-delete-session').length,1);
+    }
     const installation=JSON.parse(await fs.readFile(path.join(state,'installed.json'),'utf8'));
     assert.equal(Object.keys(installation.sidebar).length,withExtension?2:0);
     if(!withExtension)await assert.rejects(fs.access(sidebar));

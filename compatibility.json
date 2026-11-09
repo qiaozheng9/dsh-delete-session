@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
   "platform": "win32",
-  "appVersion": "0.2.1-rc.5",
-  "appHash": "e1b6f25fa937da98086c3e77af77aa14791105963c4d337a1c42179d232c6915",
+  "appVersion": "0.2.2-rc.1",
+  "appHash": "5fa8a6b21bceb8f3e99e30efa2270efd0cc773a11e42aa0488f804a64b34e637",
   "sidebarVersion": "0.28.0",
   "modules": {
-    "dsh/node_modules/@deepseek-ai/dsh-session-persistence-jsonl/lib/index.js": "973dd78679b2661d6f492343bc22b124ae958aa597d3b36c698a2c650f909984",
+    "dsh/node_modules/@deepseek-ai/dsh-session-persistence-jsonl/lib/index.js": "69efef5f84dddf947032bc1425067878fa610416c8885acde2ded9b01230c9b7",
     "dsh/node_modules/@deepseek-ai/dsh-workspace/lib/index.js": "931ca0cb10c5102066c7723690a887f0e6e8e7ab0ffdee1a782686745b0b934f",
     "dsh/node_modules/@deepseek-ai/dsh-session-projection-cache/lib/index.js": "faf307dce5db2fb7ff58b4c7d9e544fc7cad5de2f270a89326a8d7bb2bda9c80",
     "dsh/node_modules/@deepseek-ai/dsh-session-query-sqlite/lib/index.js": "dbecf83320e10d93d735b3d01384ab817a0b90102ccecb0a22c013c71dfe70a0",
-    "dsh/node_modules/@deepseek-ai/dsh-agent/lib/index.js": "7b59cf82c2784c25bdce4e3e24e5e5303b02b9f1003efacf50255492d17baf8b",
-    "dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js": "cf57e3ecd487ac5c2553455aaa5cef2c6fb41e6bd61be5aa455675d1d7193033",
-    "dsh/node_modules/@deepseek-ai/dsh-api-session-controller/lib/index.js": "a9801acb577b03053c5d5a3191ff555c5f1d791d0acddec113bea4511e33b386",
-    "dsh/node_modules/@deepseek-ai/dsh-client-file-upload/lib/index.js": "5dd5bd2d20656a1edeb1366e6b878afb04db519d2ba400135cb020ef037912fb",
-    "dsh/node_modules/@deepseek-ai/dsh-api-session-controller/lib/client.js": "82f2301c18f0e51340c1eedf8ecdfb939e873b3770a80632e438b86e82887d0e"
+    "dsh/node_modules/@deepseek-ai/dsh-agent/lib/index.js": "8673b5cfadfbb6e6ce0bcb341d0ea2877adc2986eab1c2b6c8baf32726534c92",
+    "dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js": "a6fa8e0c7c90191caf5f4a3bb5c624a86e9845cf3c79d020b71420d0e20ae4c1",
+    "dsh/node_modules/@deepseek-ai/dsh-api-session-controller/lib/index.js": "4cf6c66e65cce865d270fa89405b96d048ffa62e493e4ffbd1a826be2207a4cd",
+    "dsh/node_modules/@deepseek-ai/dsh-client-file-upload/lib/index.js": "b17e3621ce127ceb4f68919acdeeac64c54cf64c5d42429be8a7a65b5d20bbfe",
+    "dsh/node_modules/@deepseek-ai/dsh-api-session-controller/lib/client.js": "13a1b441f7fe7fa7698a3352b1904e5645fd844e6f63a7c1c5fcef415cfcae4c"
   },
   "sidebar": {
     "lib/client.js": "53b70b1b5317205247c074b8121e1ececec1df2dc3771b0641f0a66b8fd127e1",

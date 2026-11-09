@@ -1,5 +1,5 @@
 // @ts-nocheck
-// Version-pinned adapter to the installed 0.2.1-rc.5 private ABI. The patcher
+// Adapter to the supported desktop private APIs. The patcher
 // verifies every original byte before these hooks can be installed.
 import { readdirSync, readFileSync, existsSync, lstatSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -124,7 +124,10 @@ export function installApiCommands(proto) {
 }
 
 export function installUploads(proto) {
-  guardMethods(proto,['commit'],(_name,args)=>[args[0].id]);
-  const original=proto.commit;
-  proto.commit=function(...args){return gate.referenceMutation(()=>original.apply(this,args));};
+  const names=['upload','uploadStream','uploadImageStream'];
+  guardMethods(proto,names,(name,args)=>[name.endsWith('Stream')?args[0].sessionId:args[0].id]);
+  for(const name of names) {
+    const original=proto[name];
+    proto[name]=function(...args){return gate.referenceMutation(()=>original.apply(this,args));};
+  }
 }

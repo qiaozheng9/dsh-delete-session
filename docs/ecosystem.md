@@ -1,11 +1,11 @@
 # DSH 插件生态接入状态
 
-核对日期：2026-10-30。
+核对日期：2026-11-09。
 
 ## 收录申请
 
 - 已添加官方社区发现入口使用的 `dsh-plugin` 主题。
-- 已向社区生态目录 `0xsline/awesome-deepseek-harness` 的会话体验分类提交中英文条目：[PR #766](https://github.com/0xsline/awesome-deepseek-harness/pull/766)，等待维护者审核。
+- 社区生态目录 `0xsline/awesome-deepseek-harness` 已收录项目的中英文条目。[PR #766](https://github.com/0xsline/awesome-deepseek-harness/pull/766)
 
 本次提交是社区目录收录申请。安装方式以本仓库 README 为准。
 

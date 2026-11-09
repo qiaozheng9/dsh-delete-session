@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {openArchive} from './asar.mjs';
 
 export const projectRoot=fileURLToPath(new URL('../',import.meta.url));
 
@@ -36,9 +37,20 @@ export function resolvePaths({project=projectRoot,env=process.env,config:givenCo
   const home=canonical(absolute(env.DSH_HOME??config.home??installed?.home??path.join(os.homedir(),'.dsh'),'DSH_HOME / home'));
   const sidebar=absolute(env.DSH_SIDEBAR??path.join(home,'profiles','desktop','node_modules','dsh-better-sidebar'),'DSH_SIDEBAR');
   const archive=application&&path.join(application,'resources','app.asar');
+  let sourceArchive=archive;
+  if(env.DSH_ASAR)sourceArchive=absolute(env.DSH_ASAR,'DSH_ASAR');
+  else if(installed) {
+    sourceArchive=path.join(installed.backup,'app.asar');
+    if(archive&&fs.existsSync(archive)) {
+      const live=openArchive(archive);
+      try {
+        if(!live.tree.files.lib?.files?.['delete-session-bridge.mjs'])sourceArchive=archive;
+      } finally {live.close();}
+    }
+  }
   return {project,stateDir,stateFile:path.join(stateDir,'installed.json'),installed,application,home,
     profile:path.join(home,'profiles','desktop'),sidebar,archive,
-    sourceArchive:env.DSH_ASAR?absolute(env.DSH_ASAR,'DSH_ASAR'):installed?path.join(installed.backup,'app.asar'):archive,
+    sourceArchive,
     sourceSidebar:env.DSH_SIDEBAR?sidebar:installed&&Object.keys(installed.sidebar??{}).length?path.join(installed.backup,'sidebar'):sidebar,
     electron:env.DSH_ELECTRON?absolute(env.DSH_ELECTRON,'DSH_ELECTRON'):application&&path.join(application,'DeepSeek Harness.exe')};
 }

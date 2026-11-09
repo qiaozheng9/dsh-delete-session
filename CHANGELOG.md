@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Update the supported Windows desktop version to DeepSeek Harness `0.2.2-rc.1`.
+- Adapt session lifecycle and streamed attachment handling for the new desktop version.
+- Preserve prior installation files when reinstalling after a supported desktop upgrade.
+
 ## 0.1.0
 
 Initial experimental source release for the pinned Windows desktop build.

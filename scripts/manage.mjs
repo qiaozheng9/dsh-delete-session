@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHash } from 'node:crypto';
+import { createHash,randomUUID } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { openArchive } from './asar.mjs';
 import { repack } from './repack.mjs';
@@ -68,11 +68,44 @@ async function prepare(manifest) {
   return {stage,sidebarFiles};
 }
 
+async function preserveReplacedInstallation(state,backup,pluginDir) {
+  if(!samePath(state.application,application)||!samePath(state.home,home)||
+     !samePath(state.backup,backup)||!samePath(state.pluginDir,pluginDir))throw new Error('Previous installation target mismatch');
+  if(await exists(pluginDir)) {
+    if((await json(path.join(pluginDir,'package.json'))).name!=='dsh-delete-session')throw new Error('Unexpected previous plugin package');
+  }
+  const id=randomUUID();
+  const saved=path.join(stateDir,'replaced-'+id);
+  await fs.mkdir(saved);
+  const moves=[
+    [pluginDir,path.join(path.dirname(pluginDir),'dsh-delete-session-replaced-'+id)],
+    [backup,path.join(saved,'backup')],
+    [stateFile,path.join(saved,'installed.json')]
+  ];
+  const completed=[];
+  try {
+    for(const [from,to] of moves) if(await exists(from)) {
+      await fs.rename(from,to);
+      completed.push([from,to]);
+    }
+  } catch(error) {
+    for(const [from,to] of completed.reverse())await fs.rename(to,from);
+    throw error;
+  }
+  console.log('Preserved the previous installation after a desktop version change.');
+}
+
 async function install(manifest) {
-  if(await exists(stateFile))throw new Error('Installation state already exists; run status or uninstall first.');
+  const previous=await exists(stateFile)?await json(stateFile):undefined;
+  if(previous&&(previous.status!=='installed'||previous.originalArchiveHash===manifest.appHash))throw new Error('Installation state already exists; run status or uninstall first.');
   const {stage,sidebarFiles}=await prepare(manifest);
   await requireStopped();
   const backup=path.join(stateDir,'backup');
+  const pluginDir=path.join(profile,'node_modules','dsh-delete-session');
+  const originalProfile=await fs.readFile(path.join(profile,'package.json'));
+  const profilePackage=JSON.parse(originalProfile);
+  if(!Array.isArray(profilePackage.dsh?.profile?.bundles))throw new Error('Invalid desktop profile');
+  if(previous)await preserveReplacedInstallation(previous,backup,pluginDir);
   const previousBackup=await exists(backup);
   if(previousBackup) {
     if(hash(await fs.readFile(path.join(backup,'app.asar')))!==manifest.appHash)throw new Error('现有备份与当前支持版本不一致，拒绝覆盖备份');
@@ -81,19 +114,17 @@ async function install(manifest) {
     await fs.mkdir(backup,{recursive:true});
     await fs.copyFile(archivePath,path.join(backup,'app.asar'));
   }
-  const originalProfile=await fs.readFile(path.join(profile,'package.json'));
   await fs.writeFile(path.join(backup,previousBackup?'profile-before-install-'+Date.now()+'.json':'profile.json'),originalProfile);
   for(const p of Object.keys(sidebarFiles)) {
     if(await exists(path.join(backup,'sidebar',p)))continue;
     await fs.mkdir(path.dirname(path.join(backup,'sidebar',p)),{recursive:true});
     await fs.copyFile(path.join(sidebar,p),path.join(backup,'sidebar',p));
   }
-  const pluginDir=path.join(profile,'node_modules','dsh-delete-session');
   if(await exists(pluginDir))throw new Error('插件目录已存在，拒绝覆盖未知文件');
-  const profilePackage=JSON.parse(originalProfile);
   profilePackage.dependencies??={};
   profilePackage.dependencies['dsh-delete-session']='file:'+path.join(dist,'plugin').replaceAll('\\','/');
-  profilePackage.dsh.profile.bundles.push('dsh-delete-session');
+  const bundles=profilePackage.dsh.profile.bundles;
+  if(!bundles.includes('dsh-delete-session'))bundles.push('dsh-delete-session');
   const pluginHashes={};
   for(const p of ['package.json','cordis.patch.yml','README.md','LICENSE','lib/index.js','lib/client.js'])pluginHashes[p]=hash(await fs.readFile(path.join(dist,'plugin',p)));
   const state={version:1,status:'installing',application,home,archiveHash:hash(await fs.readFile(stage)),originalArchiveHash:manifest.appHash,

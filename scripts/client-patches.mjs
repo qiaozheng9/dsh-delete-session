@@ -13,6 +13,7 @@ export function patchNativeClient(source) {
         }
         this.manager.projectionStores.delete(id);
         this.manager.projectionLoads.delete(id);
+        this.manager.projectionInflight.get(id)?.controller?.abort();
         this.manager.projectionInflight.delete(id);
         this.manager.addresses.delete(id);
         this.manager.entryCache.delete(id);
